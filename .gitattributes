@@ -1,0 +1,34 @@
+# 默认行为：将所有被 Git 识别为文本的文件强制使用 LF 换行符
+* text=auto eol=lf
+
+# 针对 miniDL 项目的 C++/CUDA 源代码进行显式声明
+*.h     text eol=lf
+*.hpp   text eol=lf
+*.c     text eol=lf
+*.cc    text eol=lf
+*.cpp   text eol=lf
+*.cu    text eol=lf
+*.cuh   text eol=lf
+
+# 构建脚本与配置
+CMakeLists.txt text eol=lf
+*.cmake text eol=lf
+*.sh    text eol=lf
+*.bat   text eol=crlf
+
+# 文档与数据
+*.md    text eol=lf
+*.txt   text eol=lf
+*.json  text eol=lf
+*.yaml  text eol=lf
+*.yml   text eol=lf
+
+# 显式声明二进制文件（Git 绝对不会更改它们的换行符）
+*.png   binary
+*.jpg   binary
+*.so    binary
+*.a     binary
+*.dll   binary
+*.exe   binary
+*.ptx   binary
+*.cubin binary

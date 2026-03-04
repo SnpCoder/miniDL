@@ -1,0 +1,35 @@
+---
+# 指定基于的默认风格：Google 风格是 C++ 工业界最通用的
+BasedOnStyle: Google
+
+# --- miniDL 专属定制 ---
+
+# 缩进宽度设为 4 个空格（Google 默认是 2，但在复杂的深度学习框架中，4 个空格层次更清晰）
+IndentWidth: 4
+
+# 每行字符限制，100 是现代带鱼屏显示器的黄金比例
+ColumnLimit: 100
+
+# 指针和引用的对齐方式：靠右 (例如：int* a 而不是 int *a，这更符合现代 C++ 习惯)
+PointerAlignment: Left
+
+# 允许短代码块/函数放在同一行（让代码更紧凑）
+AllowShortBlocksOnASingleLine: true
+AllowShortFunctionsOnASingleLine: Inline
+
+# 自动排序 #include 头文件（极其重要，避免重复包含和顺序混乱）
+SortIncludes: true
+
+# 命名空间内部不缩进（避免整个文件都被缩进了一层）
+NamespaceIndentation: None
+
+# 宏定义换行对齐
+AlignEscapedNewlines: Left
+
+# 连续赋值时自动对齐等号（美观度直接拉满）
+AlignConsecutiveAssignments: true
+
+# 构造函数初始化列表的缩进与格式
+ConstructorInitializerIndentWidth: 4
+BreakConstructorInitializers: BeforeComma
+...
