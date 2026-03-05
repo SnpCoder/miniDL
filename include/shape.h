@@ -1,6 +1,8 @@
 #ifndef __MINIDL_SHAPE_H__
 #define __MINIDL_SHAPE_H__
 
+#include <stdint.h>
+
 #include <stdexcept>
 #include <vector>
 namespace miniDL {
