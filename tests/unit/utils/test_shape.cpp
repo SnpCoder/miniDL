@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "../../../include/miniDL/shape.h"
+#include "../../../include/shape.h"
 
 using namespace miniDL;
 
