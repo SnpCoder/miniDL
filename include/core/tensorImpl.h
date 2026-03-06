@@ -44,11 +44,20 @@ class TensorImpl {
     Device device() const { return _options.device(); }
     DataType data_type() const { return _options.data_type(); }
 
+    size_t compute_local_offset(const std::vector<size_t>& indices) const;
+
     void* data() const;
 
     template <typename T>
     T* data_ptr() const {
         return static_cast<T*>(data());
+    }
+
+    template <typename T>
+    T item(const std::vector<size_t>& indices) const {
+        size_t offset = compute_local_offset(indices);
+        // data() has already added storage_offset, so we can only add local stride offset here
+        return static_cast<T*>(data())[offset];
     }
 
     bool is_contiguous() const;
@@ -62,6 +71,9 @@ class TensorImpl {
 
     std::shared_ptr<Operator> creator() const { return _creator; }
     void set_creator(std::shared_ptr<Operator> c) { _creator = c; }
+
+    std::string to_string() const;
+    void print() const;
 };
 }  // namespace miniDL
 

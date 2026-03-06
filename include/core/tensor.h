@@ -32,8 +32,18 @@ class Tensor {
         return _impl->data_ptr<T>();
     }
 
+    template <typename T>
+    T item(const std::vector<size_t>& indices) const {
+        // if data is in cuda, we need to move it to cpu first before accessing the item
+        if (device().isCuda()) { return this->to(Device("cpu")).impl()->item<T>(indices); }
+        return _impl->item<T>(indices);
+    }
+
     Tensor to(Device dev) const;
     void backward();
+
+    std::string to_string() const;
+    void print() const;
 };
 }  // namespace miniDL
 #endif  // __MINIDL_TENSOR_H__

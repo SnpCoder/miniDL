@@ -1,5 +1,6 @@
 #include "../../include/core/tensor.h"
 
+#include "../../include/utils/log.h"
 #ifdef USE_CUDA
 #include <cuda_runtime.h>
 #endif
@@ -55,5 +56,22 @@ Tensor Tensor::to(Device dev) const {
 
 void Tensor::backward() {
     // TODO: implement autograd backward
+}
+
+std::string Tensor::to_string() const {
+    if (!defined()) return "Tensor(Undefined)";
+
+    // if tensor is in cuda, we need to move it to cpu first
+    if (device().isCuda()) { return this->to(Device("cpu")).impl()->to_string(); }
+
+    return _impl->to_string();
+}
+
+void Tensor::print() const {
+    if (!defined()) {
+        MINIDL_PRINT("Tensor(Undefined)");
+        return;
+    }
+    MINIDL_PRINT("{}", to_string());
 }
 }  // namespace miniDL
