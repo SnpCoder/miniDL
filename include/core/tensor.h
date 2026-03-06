@@ -22,10 +22,13 @@ class Tensor {
     size_t element_num() const { return _impl->element_num(); }
     Device device() const { return _impl->device(); }
     DataType data_type() const { return _impl->data_type(); }
+    const TensorOptions& options() const { return _impl->options(); }
 
     TensorImpl* impl() const {
         return _impl.get();
     }  // unsafe, should be used by internal operators only
+
+    std::shared_ptr<TensorImpl> shared_impl() const { return _impl; }
 
     template <typename T>
     T* data_ptr() const {
