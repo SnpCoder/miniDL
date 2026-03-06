@@ -28,9 +28,11 @@ add_subdirectory(thirdParty/googletest)
 add_subdirectory(thirdParty/spdlog)
 
 file(
-    GLOB MINIDL_SRCS
+    GLOB_RECURSE MINIDL_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/src/memory/*.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/memory/*.cu
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/ops/*.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/ops/*.cu
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/*.cpp
 )
 
@@ -41,6 +43,10 @@ find_package(CUDAToolkit REQUIRED)
 target_include_directories(minidl PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 target_compile_definitions(minidl PUBLIC USE_CUDA)
+target_compile_options(minidl PRIVATE
+    $<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe=--diag_suppress=128>
+    $<$<COMPILE_LANGUAGE:CUDA>:-Xcudafe=--diag_suppress=2417>
+)
 
 target_link_libraries(minidl PUBLIC spdlog::spdlog CUDA::cudart)
 
