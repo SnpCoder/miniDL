@@ -30,6 +30,7 @@ file(
     GLOB MINIDL_SRCS
         ${CMAKE_CURRENT_SOURCE_DIR}/src/memory/*.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/memory/*.cu
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/core/*.cpp
 )
 
 add_library(minidl ${MINIDL_SRCS})

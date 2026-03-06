@@ -10,7 +10,7 @@ file(GLOB UNIT_TEST_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/memory/*.cpp
 )
 
-# 2. 声明统一的测试可执行文件 (替代原来的 test_shape)
+# 2. 声明统一的测试可执行文件
 add_executable(minidl_unit_tests ${UNIT_TEST_SRCS})
 
 # 3. 核心魔法：Target-based 链接
