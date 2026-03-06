@@ -30,6 +30,10 @@ class Shape {
         return _dims[index];
     }
 
+    bool operator==(const Shape& other) const { return _dims == other._dims; }
+
+    bool operator!=(const Shape& other) const { return !(*this == other); }
+
     size_t elements() const {
         if (_dims.empty()) { return 1; }
 
