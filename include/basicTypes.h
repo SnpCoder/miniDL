@@ -17,6 +17,25 @@ enum class DataType : int8_t {
     kUInt8   = 5
 };
 
+static size_t get_element_size(DataType dt) {
+    switch (dt) {
+        case DataType::kFloat32:
+            return 4;
+        case DataType::kFloat64:
+            return 8;
+        case DataType::kInt32:
+            return 4;
+        case DataType::kInt64:
+            return 8;
+        case DataType::kInt8:
+            return 1;
+        case DataType::kUInt8:
+            return 1;
+        default:
+            MINIDL_THROW_INVALID_ARG("Unsupported data type:{}", static_cast<int>(dt));
+    }
+};
+
 // refer C++ origin type to DataType in compile-time
 template <typename T>
 struct DataTypeTraits;
