@@ -2,6 +2,7 @@
 
 #include "../../../include/core/tensor.h"
 #include "../../../include/core/tensorOptions.h"
+#include "../../../include/utils/log.h"
 
 using namespace miniDL;
 
@@ -118,5 +119,29 @@ TEST(TensorTest, CrossDeviceTransfer) {
     EXPECT_FLOAT_EQ(back_ptr[0], 0.0f);
     EXPECT_FLOAT_EQ(back_ptr[99], 99.0f);
     EXPECT_FLOAT_EQ(zeros_back_ptr[50], 0.0f);
+}
+
+// ============================================================================
+// 6. CPU print && GPU print 测试
+// ============================================================================
+TEST(TensorTest, PrintAndFormat) {
+    // 构造一个 2x3 的 CPU 张量
+    Tensor t = Tensor::zeros(Shape({2, 3}), miniDL::device("cpu").requiresGrad(true));
+
+    // 用刚写的索引寻址功能，精准修改几个值
+    t.data_ptr<float>()[t.impl()->compute_local_offset({0, 1})] = 3.14f;
+    t.data_ptr<float>()[t.impl()->compute_local_offset({1, 2})] = 9.99f;
+
+    MINIDL_PRINT("========== 视觉震撼：张量打印测试 ==========");
+    t.print();
+    MINIDL_PRINT("============================================\n");
+
+#ifdef USE_CUDA
+    // 测试极其硬核的 GPU 自动回退打印！
+    Tensor gpu_t = t.to(Device("cuda:0"));
+    MINIDL_PRINT("========== GPU 张量自动安全打印测试 ==========");
+    gpu_t.print();
+    MINIDL_PRINT("============================================\n");
+#endif
 }
 #endif
