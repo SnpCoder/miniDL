@@ -44,11 +44,21 @@ void* GPUAllocator::allocate(size_t nbytes) {
 void GPUAllocator::deallocate(void* ptr) {
 #ifdef USE_CUDA
     cudaError_t err = cudaSetDevice(_device_id);
+
+    if (err == cudaErrorCudartUnloading) {
+        return;  // CUDA runtime is unloading, memory will be freed by OS, just return
+    };
+
     if (err != cudaSuccess) {
         MINIDL_THROW_RUNTIME("Failed to set CUDA device {}: {}", _device_id,
                              cudaGetErrorString(err));
     }
     err = cudaFree(ptr);
+
+    if (err == cudaErrorCudartUnloading) {
+        return;  // CUDA runtime is unloading, memory will be freed by OS, just return
+    }
+
     if (err != cudaSuccess) {
         MINIDL_THROW_RUNTIME("Failed to free CUDA memory on device {}: {}", _device_id,
                              cudaGetErrorString(err));
