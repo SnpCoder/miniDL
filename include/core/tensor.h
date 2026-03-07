@@ -16,6 +16,7 @@ class Tensor {
 
     static Tensor empty(const Shape& shape, const TensorOptions& options = TensorOptions());
     static Tensor zeros(const Shape& shape, const TensorOptions& options = TensorOptions());
+    static Tensor ones(const Shape& shape, const TensorOptions& options = TensorOptions());
 
     bool defined() const { return _impl != nullptr; }
     const Shape& shape() const { return _impl->shape(); }
@@ -24,11 +25,15 @@ class Tensor {
     DataType data_type() const { return _impl->data_type(); }
     const TensorOptions& options() const { return _impl->options(); }
 
+    Tensor& operator+=(const Tensor& other);
+    Tensor& operator+=(float scalar);
+
     TensorImpl* impl() const {
         return _impl.get();
     }  // unsafe, should be used by internal operators only
 
     std::shared_ptr<TensorImpl> shared_impl() const { return _impl; }
+    Tensor clone() const;
 
     template <typename T>
     T* data_ptr() const {
@@ -42,6 +47,11 @@ class Tensor {
         return _impl->item<T>(indices);
     }
 
+    bool requires_grad() const { return _impl && _impl->requires_grad(); }
+    Tensor grad() const {
+        if (!_impl || !_impl->grad()) return Tensor();
+        return Tensor(_impl->grad());
+    }
     Tensor to(Device dev) const;
     void backward();
 

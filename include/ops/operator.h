@@ -42,6 +42,9 @@ class Operator : public std::enable_shared_from_this<Operator> {
 
     virtual std::vector<Tensor> forward(const std::vector<Tensor>& inputs)        = 0;
     virtual std::vector<Tensor> backward(const std::vector<Tensor>& grad_outputs) = 0;
+
+    const std::vector<Tensor>& inputs() const { return _inputs; }
+    const std::vector<std::weak_ptr<TensorImpl>>& outputs() const { return _outputs; }
 };
 }  // namespace miniDL
 #endif  // __MINIDL_OPERATOR_H__
