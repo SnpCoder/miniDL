@@ -18,8 +18,8 @@ MemoryPool::~MemoryPool() {
     _idleBlocksPool.clear();
 
     if (!_allocatedBlocks.empty()) {
-        std::cerr << "[FATAL] MemoryPool: Memory Leak detected! Unreleased blocks count: "
-                  << _allocatedBlocks.size() << std::endl;
+        MINIDL_THROW_RUNTIME("MemoryPool: Memory Leak detected! Unreleased blocks count: {}",
+                             _allocatedBlocks.size());
     }
     _allocatedBlocks.clear();
 }
@@ -112,12 +112,11 @@ MemoryPoolManager& MemoryPoolManager::getInstant() {
 
 MemoryPool* MemoryPoolManager::getMemoryPool(Device dev) {
     if (dev.isCpu()) {
-        std::call_once(cpuInitFlag,
-                       [this, dev]() { cpuPool = std::make_unique<MemoryPool>(dev); });
+        std::call_once(cpuInitFlag, [this, dev]() { cpuPool = std::make_unique<MemoryPool>(dev); });
         return cpuPool.get();
     } else if (dev.isCuda()) {
-        std::call_once(gpuInitFlag,
-                       [this, dev]() { gpuPool = std::make_unique<MemoryPool>(dev); });
+        // TODO: support multiple GPU devices
+        std::call_once(gpuInitFlag, [this, dev]() { gpuPool = std::make_unique<MemoryPool>(dev); });
         return gpuPool.get();
     } else {
         MINIDL_THROW_INVALID_ARG("Unsupported device type");

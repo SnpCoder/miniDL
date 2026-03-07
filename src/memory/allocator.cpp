@@ -24,24 +24,37 @@ void CPUAllocator::deallocate(void* ptr) {
 void* GPUAllocator::allocate(size_t nbytes) {
 #ifdef USE_CUDA
     cudaError_t err = cudaSetDevice(_device_id);
-    if (err != cudaSuccess) {}
+    if (err != cudaSuccess) {
+        MINIDL_THROW_RUNTIME("Failed to set CUDA device {}: {}", _device_id,
+                             cudaGetErrorString(err));
+    }
     const size_t alignmentSize = (nbytes + MEM_ALIGNMENT_SIZE - 1) & ~(MEM_ALIGNMENT_SIZE - 1);
     void* ptr                  = nullptr;
     err                        = cudaMalloc(&ptr, alignmentSize);
-    if (err != cudaSuccess) {}
+    if (err != cudaSuccess) {
+        MINIDL_THROW_RUNTIME("Failed to allocate CUDA memory on device {}: {}", _device_id,
+                             cudaGetErrorString(err));
+    }
     return ptr;
 #else
-
+    MINIDL_THROW_RUNTIME("CUDA support is not enabled");
 #endif
 }
 
 void GPUAllocator::deallocate(void* ptr) {
 #ifdef USE_CUDA
     cudaError_t err = cudaSetDevice(_device_id);
-    if (err != cudaSuccess) {}
+    if (err != cudaSuccess) {
+        MINIDL_THROW_RUNTIME("Failed to set CUDA device {}: {}", _device_id,
+                             cudaGetErrorString(err));
+    }
     err = cudaFree(ptr);
-    if (err != cudaSuccess) {}
+    if (err != cudaSuccess) {
+        MINIDL_THROW_RUNTIME("Failed to free CUDA memory on device {}: {}", _device_id,
+                             cudaGetErrorString(err));
+    }
 #else
+    MINIDL_THROW_RUNTIME("CUDA support is not enabled");
 #endif
 }
 
