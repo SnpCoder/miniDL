@@ -116,7 +116,7 @@ Tensor Tensor::clone() const {
     if (!defined()) return Tensor();
 
     TensorOptions clone_opts = _impl->options();
-    clone_opts.requiresGrad(false);
+    clone_opts.requiresGrad(false);  // avoid deadlock in backward propagation
 
     Tensor out         = Tensor::empty(this->shape(), clone_opts);
     size_t total_bytes = this->element_num() * get_element_size(this->data_type());
@@ -159,6 +159,8 @@ void Tensor::backward() {
         MINIDL_THROW_RUNTIME("Cannot call backward() on a tensor that does not require grad");
     }
 
+    // initialize the begining gradient: dL / dL = 1
+    // if grad isn't defined, we give it a all-one tensor
     if (!this->grad().defined()) {
         Tensor _ones = Tensor::ones(
             this->shape(),
@@ -166,6 +168,7 @@ void Tensor::backward() {
         _impl->set_grad(_ones.shared_impl());
     }
 
+    // topo-sort
     std::vector<std::shared_ptr<Operator>> topo_order;
     std::unordered_set<Operator*> visited;
 
@@ -177,15 +180,18 @@ void Tensor::backward() {
             if (input.defined() && input.impl()->creator()) { build_topo(input.impl()->creator()); }
         }
 
+        // visit all father node, and add itself
         topo_order.push_back(op);
     };
 
     build_topo(_impl->creator());
     MINIDL_INFO("Autograd Engine started. Total operators in graph: {}", topo_order.size());
 
+    // 从队列尾部 (Loss 节点附近) 往头部 (网络输入层) 倒序遍历
     for (auto it = topo_order.rbegin(); it != topo_order.rend(); ++it) {
         auto op = *it;
 
+        // a. 收集该算子所有输出张量的梯度
         std::vector<Tensor> grad_outputs;
         for (const auto& weak_out : op->outputs()) {
             if (auto out_impl = weak_out.lock()) {
@@ -198,6 +204,8 @@ void Tensor::backward() {
             }
         }
 
+        // b. 调用算子的 backward 接口计算对输入的偏导数
+        // 比如 Add 算子会把梯度 1:1 地复制两份退回来
         std::vector<Tensor> grad_inputs = op->backward(grad_outputs);
 
         for (size_t i = 0; i < op->inputs().size(); ++i) {
@@ -205,8 +213,11 @@ void Tensor::backward() {
 
             if (input.requires_grad()) {
                 if (!input.grad().defined()) {
+                    // 第一次分发到梯度，直接赋值
                     input.impl()->set_grad(grad_inputs[i].clone().shared_impl());
                 } else {
+                    // 如果这个张量被用在多处 (比如 C = A + A)，梯度需要累加！
+                    // 我们直接使用重载的 operator+= 来完成这个数学操作
                     input.grad() += grad_inputs[i];
                 }
             }
