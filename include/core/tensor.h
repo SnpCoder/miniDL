@@ -27,6 +27,8 @@ class Tensor {
 
     Tensor& operator+=(const Tensor& other);
     Tensor& operator+=(float scalar);
+    Tensor& operator*=(const Tensor& other);
+    Tensor& operator*=(float scalar);
 
     TensorImpl* impl() const {
         return _impl.get();

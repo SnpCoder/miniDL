@@ -5,6 +5,7 @@
 
 #include "../../include/ops/cuda/fill_cuda.cuh"
 #include "../../include/ops/cuda/math/add_cuda.cuh"
+#include "../../include/ops/cuda/math/mul_cuda.cuh"
 #include "../../include/ops/math/add.h"
 #include "../../include/utils/log.h"
 #ifdef USE_CUDA
@@ -107,6 +108,40 @@ Tensor& Tensor::operator+=(float scalar) {
         cuda::launch_add_scalar_inplace_kernel_float32(this_ptr, scalar, n);
 #else
         MINIDL_THROW_RUNTIME("Framework compiled without CUDA support!");
+#endif
+    }
+    return *this;
+}
+
+Tensor& Tensor::operator*=(const Tensor& other) {
+    if (this->shape() != other.shape())
+        MINIDL_THROW_INVALID_ARG("Tensor operator*= shape mismatch.");
+    if (this->device() != other.device())
+        MINIDL_THROW_INVALID_ARG("Tensor operator*= device mismatch.");
+
+    size_t n               = this->element_num();
+    float* this_ptr        = this->data_ptr<float>();
+    const float* other_ptr = other.data_ptr<float>();
+
+    if (this->device().isCpu()) {
+        for (size_t i = 0; i < n; ++i) this_ptr[i] *= other_ptr[i];
+    } else if (this->device().isCuda()) {
+#ifdef USE_CUDA
+        cuda::launch_mul_inplace_kernel_float32(this_ptr, other_ptr, n);
+#endif
+    }
+    return *this;
+}
+
+Tensor& Tensor::operator*=(float scalar) {
+    size_t n        = this->element_num();
+    float* this_ptr = this->data_ptr<float>();
+
+    if (this->device().isCpu()) {
+        for (size_t i = 0; i < n; ++i) this_ptr[i] *= scalar;
+    } else if (this->device().isCuda()) {
+#ifdef USE_CUDA
+        cuda::launch_mul_scalar_inplace_kernel_float32(this_ptr, scalar, n);
 #endif
     }
     return *this;

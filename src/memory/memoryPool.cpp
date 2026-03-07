@@ -18,8 +18,9 @@ MemoryPool::~MemoryPool() {
     _idleBlocksPool.clear();
 
     if (!_allocatedBlocks.empty()) {
-        MINIDL_THROW_RUNTIME("MemoryPool: Memory Leak detected! Unreleased blocks count: {}",
-                             _allocatedBlocks.size());
+        // can not use my macro here
+        std::cerr << "[FATAL] MemoryPool: Memory Leak detected! Unreleased blocks count: "
+                  << _allocatedBlocks.size() << std::endl;
     }
     _allocatedBlocks.clear();
 }
