@@ -6,6 +6,7 @@
 #include "../../include/ops/cuda/fill_cuda.cuh"
 #include "../../include/ops/cuda/math/add_cuda.cuh"
 #include "../../include/ops/cuda/math/mul_cuda.cuh"
+#include "../../include/ops/cuda/shape/transpose_cuda.cuh"
 #include "../../include/ops/math/add.h"
 #include "../../include/utils/log.h"
 #ifdef USE_CUDA
@@ -258,6 +259,40 @@ void Tensor::backward() {
             }
         }
     }
+}
+
+Tensor Tensor::transpose() const {
+    if (this->ndim() != 2) {
+        MINIDL_THROW_INVALID_ARG("miniDL currently only supports 2D matrix physical transpose.");
+    }
+
+    int rows = this->shape()[0];
+    int cols = this->shape()[1];
+
+    // 强制关闭新张量的梯度追踪（因为它是为反向传播做准备的纯物理搬运）
+    TensorOptions trans_opts = _impl->options();
+    trans_opts.requiresGrad(false);
+
+    // 申请一块形状反转的新内存
+    Tensor out =
+        Tensor::empty(Shape({static_cast<size_t>(cols), static_cast<size_t>(rows)}), trans_opts);
+
+    if (this->device().isCpu()) {
+        const float* src = this->data_ptr<float>();
+        float* dst       = out.data_ptr<float>();
+        // CPU 朴素转置
+        for (int i = 0; i < rows; ++i) {
+            for (int j = 0; j < cols; ++j) { dst[j * rows + i] = src[i * cols + j]; }
+        }
+    } else if (this->device().isCuda()) {
+#ifdef USE_CUDA
+        cuda::launch_transpose_kernel_float32(this->data_ptr<float>(), out.data_ptr<float>(), rows,
+                                              cols);
+#else
+        MINIDL_THROW_RUNTIME("Framework compiled without CUDA support!");
+#endif
+    }
+    return out;
 }
 
 std::string Tensor::to_string() const {

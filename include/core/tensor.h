@@ -21,6 +21,7 @@ class Tensor {
     bool defined() const { return _impl != nullptr; }
     const Shape& shape() const { return _impl->shape(); }
     size_t element_num() const { return _impl->element_num(); }
+    size_t ndim() const { return _impl->shape().size(); }
     Device device() const { return _impl->device(); }
     DataType data_type() const { return _impl->data_type(); }
     const TensorOptions& options() const { return _impl->options(); }
@@ -56,6 +57,7 @@ class Tensor {
     }
     Tensor to(Device dev) const;
     void backward();
+    Tensor transpose() const;
 
     std::string to_string() const;
     void print() const;
