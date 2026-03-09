@@ -17,6 +17,10 @@ class Tensor {
     static Tensor empty(const Shape& shape, const TensorOptions& options = TensorOptions());
     static Tensor zeros(const Shape& shape, const TensorOptions& options = TensorOptions());
     static Tensor ones(const Shape& shape, const TensorOptions& options = TensorOptions());
+    static Tensor uniform(const Shape& shape, float low = 0.0f, float high = 1.0f,
+                          const TensorOptions& options = TensorOptions());
+    static Tensor randn(const Shape& shape, float mean = 0.0f, float std = 1.0f,
+                        const TensorOptions& options = TensorOptions());
 
     bool defined() const { return _impl != nullptr; }
     const Shape& shape() const { return _impl->shape(); }
