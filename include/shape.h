@@ -49,6 +49,7 @@ class Shape {
 
     size_t size() const { return _dims.size(); }
     size_t ndim() const { return _dims.size(); }
+    std::vector<size_t> vec() const { return _dims; }
     bool isScalar() { return _dims.empty(); }
 };
 
