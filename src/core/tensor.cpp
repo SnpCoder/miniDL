@@ -8,6 +8,8 @@
 #include "../../include/ops/cuda/math/add_cuda.cuh"
 #include "../../include/ops/cuda/math/mul_cuda.cuh"
 #include "../../include/ops/math/add.h"
+#include "../../include/ops/math/bmm.h"
+#include "../../include/ops/memory/contiguous.h"
 #include "../../include/ops/shape/permute.h"
 #include "../../include/ops/shape/reshape.h"
 #include "../../include/ops/shape/transpose.h"
@@ -348,6 +350,14 @@ Tensor Tensor::reshape(const Shape& new_shape) const {
 
 Tensor Tensor::permute(const std::vector<size_t>& dims) const {
     return PermuteOp::apply(*this, dims);
+}
+
+Tensor Tensor::bmm(const Tensor& other) const {
+    return BmmOp::apply(*this, other);
+}
+
+Tensor Tensor::contiguous() const {
+    return ContiguousOp::apply(*this);
 }
 
 std::string Tensor::to_string() const {

@@ -64,6 +64,10 @@ class Tensor {
     Tensor transpose() const;
     Tensor reshape(const Shape& new_shape) const;
     Tensor permute(const std::vector<size_t>& dims) const;
+    Tensor bmm(const Tensor& other) const;
+
+    bool is_contiguous() const { return _impl->is_contiguous(); }
+    Tensor contiguous() const;
 
     std::string to_string() const;
     void print() const;
