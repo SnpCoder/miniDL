@@ -33,6 +33,7 @@ file(
         ${CMAKE_CURRENT_SOURCE_DIR}/src/memory/*.cu
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ops/*.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/ops/*.cu
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/nn/*.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/*.cpp
 )
 

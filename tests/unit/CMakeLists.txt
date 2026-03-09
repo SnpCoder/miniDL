@@ -6,10 +6,11 @@ set(UNIT_TEST_OUTPUT_DIR ${CMAKE_BINARY_DIR}/bin/unitTest)
 # 以后你再加 tensor/test_tensor.cpp，只需要加一行路径即可
 # ==========================================
 file(GLOB_RECURSE UNIT_TEST_SRCS
-    ${CMAKE_CURRENT_SOURCE_DIR}/utils/*.cpp
+    # ${CMAKE_CURRENT_SOURCE_DIR}/utils/*.cpp
     # ${CMAKE_CURRENT_SOURCE_DIR}/memory/*.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/ops/*.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/core/*.cpp
+    # ${CMAKE_CURRENT_SOURCE_DIR}/core/*.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/nn/*.cpp
 )
 
 # 2. 声明统一的测试可执行文件
