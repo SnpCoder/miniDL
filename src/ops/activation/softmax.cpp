@@ -11,13 +11,10 @@ namespace miniDL {
 
 std::vector<Tensor> SoftmaxOp::forward(const std::vector<Tensor>& inputs) {
     const Tensor& x = inputs[0];
-    if (x.ndim() != 2) {
-        // 现阶段，我们强制要求输入是 2D [Batch, Features]，按 Feature 维度做 Softmax
-        throw std::runtime_error("Softmax currently only supports 2D tensors [Batch, Dim]");
-    }
+    if (x.element_num() == 0) { return {x}; }
 
-    size_t batch_size = x.shape()[0];
-    size_t dim        = x.shape()[1];
+    size_t dim        = x.shape()[x.ndim() - 1];
+    size_t batch_size = x.element_num() / dim;
     Tensor out        = Tensor::empty(x.shape(), x.options());
 
     if (x.device().isCpu()) {
@@ -60,8 +57,8 @@ std::vector<Tensor> SoftmaxOp::backward(const std::vector<Tensor>& grad_outputs)
     const Tensor& grad_out = grad_outputs[0];
     Tensor grad_x          = Tensor::empty(grad_out.shape(), grad_out.options());
 
-    size_t batch_size = grad_out.shape()[0];
-    size_t dim        = grad_out.shape()[1];
+    size_t dim        = grad_out.shape()[grad_out.ndim() - 1];
+    size_t batch_size = grad_out.element_num() / dim;
 
     if (grad_out.device().isCpu()) {
         const float* y_ptr  = _saved_out.data_ptr<float>();  // 拿回前向保存的 Y
@@ -90,6 +87,9 @@ std::vector<Tensor> SoftmaxOp::backward(const std::vector<Tensor>& grad_outputs)
         MINIDL_THROW_RUNTIME("Framework compiled without CUDA support!");
 #endif
     }
+
+    // 释放缓存，打破 shared_ptr 循环引用！
+    _saved_out = Tensor();
     return {grad_x};
 }
 
