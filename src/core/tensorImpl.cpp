@@ -101,6 +101,50 @@ void format_tensor_recursive(std::ostringstream& oss, const TensorImpl* impl,
 }
 }  // anonymous namespace
 
+std::shared_ptr<TensorImpl> TensorImpl::permute(const std::vector<size_t>& dims) const {
+    if (dims.size() != ndim()) {
+        MINIDL_THROW_INVALID_ARG("Permute dims count must match tensor ndim.");
+    }
+
+    std::vector<size_t> new_shape(ndim());
+    std::vector<size_t> new_strides(ndim());
+
+    // 【核心魔法】：新形状和新步长，仅仅是老形状和老步长的重新排列！
+    // 底层物理内存地址 (_storage) 完全没变！
+    for (size_t i = 0; i < ndim(); ++i) {
+        new_shape[i]   = _shape[dims[i]];
+        new_strides[i] = _strides[dims[i]];
+    }
+
+    // 返回一个新的 Impl，共享 storage！
+    return std::make_shared<TensorImpl>(_storage, Shape(new_shape), new_strides, _storage_offset,
+                                        _options);
+}
+
+std::shared_ptr<TensorImpl> TensorImpl::reshape(const Shape& new_shape) const {
+    if (new_shape.elements() != element_num()) {
+        MINIDL_THROW_INVALID_ARG("Reshape cannot change the total number of elements.");
+    }
+
+    // 严格的零拷贝 Reshape (类似于 PyTorch 的 view)，要求内存必须是连续的
+    if (!is_contiguous()) {
+        // 工业级框架在这里会触发 deep copy (contiguous())，
+        // 但为了我们现阶段的高效与严谨，我们直接报错，逼迫上层保证连续性
+        MINIDL_THROW_RUNTIME("Zero-copy reshape requires a contiguous tensor.");
+    }
+
+    // 因为数据是连续的，我们只需要根据新 shape 重新计算标准的递减 strides 即可
+    std::vector<size_t> new_strides(new_shape.size());
+    size_t stride = 1;
+    for (int i = new_shape.size() - 1; i >= 0; --i) {
+        new_strides[i] = stride;
+        stride *= new_shape[i];
+    }
+
+    return std::make_shared<TensorImpl>(_storage, new_shape, new_strides, _storage_offset,
+                                        _options);
+}
+
 // pytorch-like tensor string representation, e.g. [[1.0000, 2.0000], [3.0000, 4.0000]]
 std::string TensorImpl::to_string() const {
     if (_options.device().isCuda()) {

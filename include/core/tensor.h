@@ -62,6 +62,8 @@ class Tensor {
     Tensor to(Device dev) const;
     void backward();
     Tensor transpose() const;
+    Tensor reshape(const Shape& new_shape) const;
+    Tensor permute(const std::vector<size_t>& dims) const;
 
     std::string to_string() const;
     void print() const;

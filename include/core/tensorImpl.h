@@ -36,6 +36,7 @@ class TensorImpl {
     TensorImpl& operator=(const TensorImpl&) = delete;
 
     const Shape& shape() const { return _shape; }
+    size_t ndim() const { return _shape.ndim(); }
     const std::vector<size_t>& strides() const { return _strides; }
     size_t storage_offset() const { return _storage_offset; }
     size_t element_num() const { return _shape.elements(); }
@@ -71,6 +72,9 @@ class TensorImpl {
 
     std::shared_ptr<Operator> creator() const { return _creator; }
     void set_creator(std::shared_ptr<Operator> c) { _creator = c; }
+
+    std::shared_ptr<TensorImpl> permute(const std::vector<size_t>& dims) const;
+    std::shared_ptr<TensorImpl> reshape(const Shape& new_shape) const;
 
     std::string to_string() const;
     void print() const;

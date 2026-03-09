@@ -8,6 +8,8 @@
 #include "../../include/ops/cuda/math/add_cuda.cuh"
 #include "../../include/ops/cuda/math/mul_cuda.cuh"
 #include "../../include/ops/math/add.h"
+#include "../../include/ops/shape/permute.h"
+#include "../../include/ops/shape/reshape.h"
 #include "../../include/ops/shape/transpose.h"
 #include "../../include/utils/log.h"
 #ifdef USE_CUDA
@@ -338,6 +340,14 @@ void Tensor::backward() {
 
 Tensor Tensor::transpose() const {
     return TransposeOp::apply(*this);
+}
+
+Tensor Tensor::reshape(const Shape& new_shape) const {
+    return ReshapeOp::apply(*this, new_shape);
+}
+
+Tensor Tensor::permute(const std::vector<size_t>& dims) const {
+    return PermuteOp::apply(*this, dims);
 }
 
 std::string Tensor::to_string() const {
