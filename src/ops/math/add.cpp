@@ -50,6 +50,29 @@ Tensor AddOp::apply(const Tensor& a, const Tensor& b) {
     return (*op)({a, b})[0];
 }
 
+void AddOp::apply_inplace(Tensor& self, const Tensor& other) {
+    if (self.shape() != other.shape()) {
+        MINIDL_THROW_INVALID_ARG("AddOp inplace: shapes must match.");
+    }
+    if (self.device() != other.device()) {
+        MINIDL_THROW_INVALID_ARG("AddOp inplace: tensors must be on the same device.");
+    }
+
+    size_t n           = self.element_num();
+    float* s_ptr       = self.data_ptr<float>();
+    const float* o_ptr = other.data_ptr<float>();
+
+    if (self.device().isCpu()) {
+        for (size_t i = 0; i < n; ++i) { s_ptr[i] += o_ptr[i]; }
+    } else if (self.device().isCuda()) {
+#ifdef USE_CUDA
+        cuda::launch_add_inplace_kernel_float32(s_ptr, o_ptr, n);
+#else
+        MINIDL_THROW_RUNTIME("Framework compiled without CUDA support!");
+#endif
+    }
+}
+
 std::vector<Tensor> AddScalarOp::forward(const std::vector<Tensor>& inputs) {
     if (inputs.size() != 1) { MINIDL_THROW_INVALID_ARG("AddScalarOp requires only 1 input."); }
     const Tensor& a = inputs[0];
@@ -81,6 +104,21 @@ std::vector<Tensor> AddScalarOp::backward(const std::vector<Tensor>& grad_output
 Tensor AddScalarOp::apply(const Tensor& a, float b) {
     auto op = std::make_shared<AddScalarOp>(b);
     return (*op)({a})[0];
+}
+
+void AddScalarOp::apply_inplace(Tensor& self, float scalar) {
+    size_t n     = self.element_num();
+    float* s_ptr = self.data_ptr<float>();
+
+    if (self.device().isCpu()) {
+        for (size_t i = 0; i < n; ++i) { s_ptr[i] += scalar; }
+    } else if (self.device().isCuda()) {
+#ifdef USE_CUDA
+        cuda::launch_add_scalar_inplace_kernel_float32(s_ptr, scalar, n);
+#else
+        MINIDL_THROW_RUNTIME("Framework compiled without CUDA support!");
+#endif
+    }
 }
 
 Tensor operator+(const Tensor& a, const Tensor& b) {

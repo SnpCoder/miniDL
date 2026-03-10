@@ -5,6 +5,9 @@
 
 #include "../../include/utils/exception.h"
 #include "../../include/utils/log.h"
+#ifdef USE_CUDA
+#include <cuda_runtime.h>
+#endif
 
 namespace miniDL {
 void TensorImpl::compute_contiguous_strides() {
@@ -143,6 +146,40 @@ std::shared_ptr<TensorImpl> TensorImpl::reshape(const Shape& new_shape) const {
 
     return std::make_shared<TensorImpl>(_storage, new_shape, new_strides, _storage_offset,
                                         _options);
+}
+
+std::shared_ptr<TensorImpl> TensorImpl::clone() const {
+    TensorOptions clone_opts = _options;
+    clone_opts.requiresGrad(false);  // 克隆产生的节点默认不带梯度
+
+    auto new_impl      = std::make_shared<TensorImpl>(_shape, clone_opts);
+    size_t total_bytes = element_num() * get_element_size(this->data_type());
+
+    if (this->device().isCpu()) {
+        std::memcpy(new_impl->data(), this->data(), total_bytes);
+    } else if (_options.device().isCuda()) {
+#ifdef USE_CUDA
+        cudaError_t err =
+            cudaMemcpy(new_impl->data(), this->data(), total_bytes, cudaMemcpyDeviceToDevice);
+        if (err != cudaSuccess) {
+            MINIDL_THROW_RUNTIME("cudaMemcpy failed during clone: {}", cudaGetErrorString(err));
+        }
+#else
+        MINIDL_THROW_RUNTIME("Framework compiled without CUDA support!");
+#endif
+    }
+    return new_impl;
+}
+
+std::shared_ptr<TensorImpl> TensorImpl::to(Device dev) const {
+    // the same divice judgement has done by Tensor
+
+    auto new_storage          = _storage->toDevice(dev);
+    TensorOptions new_options = _options;
+    new_options.device(dev);
+
+    return std::make_shared<TensorImpl>(std::move(new_storage), _shape, _strides, _storage_offset,
+                                        new_options);
 }
 
 // pytorch-like tensor string representation, e.g. [[1.0000, 2.0000], [3.0000, 4.0000]]

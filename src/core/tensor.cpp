@@ -7,8 +7,10 @@
 #include "../../include/ops/cuda/fill_cuda.cuh"
 #include "../../include/ops/cuda/math/add_cuda.cuh"
 #include "../../include/ops/cuda/math/mul_cuda.cuh"
+#include "../../include/ops/factory.h"
 #include "../../include/ops/math/add.h"
 #include "../../include/ops/math/bmm.h"
+#include "../../include/ops/math/mul.h"
 #include "../../include/ops/memory/contiguous.h"
 #include "../../include/ops/shape/permute.h"
 #include "../../include/ops/shape/reshape.h"
@@ -28,228 +30,52 @@ Tensor Tensor::empty(const Shape& shape, const TensorOptions& options) {
 // zero-filled tensor
 Tensor Tensor::zeros(const Shape& shape, const TensorOptions& options) {
     Tensor t = Tensor::empty(shape, options);
-
-    // calculate total bytes to set 0
-    void* ptr          = t.impl()->data();
-    size_t total_bytes = t.element_num() * get_element_size(t.data_type());
-
-    if (options.device().isCpu()) {
-        std::memset(ptr, 0, total_bytes);
-    } else if (options.device().isCuda()) {
-#ifdef USE_CUDA
-        cudaError_t err = cudaMemset(ptr, 0, total_bytes);
-        if (err != cudaSuccess) {
-            MINIDL_THROW_RUNTIME("cudaMemset failed: {}", cudaGetErrorString(err));
-        }
-#else
-        MINIDL_THROW_RUNTIME("MiniDL is compiled without CUDA support");
-#endif
-    } else {
-        MINIDL_THROW_INVALID_ARG("Unsupported device type: {}", options.device().to_string());
-    }
-
+    ops::fill_zeros(t);
     return t;
 }
 
 // one-filled tensor
 Tensor Tensor::ones(const Shape& shape, const TensorOptions& options) {
     Tensor t = Tensor::empty(shape, options);
-
-    // calculate total bytes to set 1
-    float* ptr = t.data_ptr<float>();
-    size_t n   = t.element_num();
-
-    if (options.device().isCpu()) {
-        std::fill(ptr, ptr + n, 1.0f);
-    } else if (options.device().isCuda()) {
-#ifdef USE_CUDA
-        cuda::launch_fill_kernel_float32(ptr, 1.0f, t.element_num());
-        cudaError_t err = cudaGetLastError();
-        if (err != cudaSuccess) {
-            MINIDL_THROW_RUNTIME("cudaMemset failed: {}", cudaGetErrorString(err));
-        }
-#else
-        MINIDL_THROW_RUNTIME("MiniDL is compiled without CUDA support");
-#endif
-    } else {
-        MINIDL_THROW_INVALID_ARG("Unsupported device type: {}", options.device().to_string());
-    }
-
+    ops::fill_ones(t);
     return t;
 }
 
 Tensor Tensor::uniform(const Shape& shape, float low, float high, const TensorOptions& options) {
-    if (options.device().isCuda()) {
-#ifdef USE_CUDA
-        TensorOptions cpu_opts = options;
-        cpu_opts.device(Device("cpu")).requiresGrad(false);
-        Tensor cpu_tensor = Tensor::empty(shape, cpu_opts);
-
-        float* ptr = cpu_tensor.data_ptr<float>();
-        std::mt19937 gen(std::random_device{}());
-        // 【核心区别】：使用均匀分布器！
-        std::uniform_real_distribution<float> dist(low, high);
-
-        for (size_t i = 0; i < cpu_tensor.element_num(); ++i) { ptr[i] = dist(gen); }
-
-        Tensor result = cpu_tensor.to(options.device());
-        if (options.require_grad()) { result.impl()->set_requires_grad(true); }
-        return result;
-#else
-        MINIDL_THROW_RUNTIME("CUDA support not enabled, cannot create CUDA uniform tensor");
-#endif
-    } else {
-        Tensor cpu_tensor = Tensor::empty(shape, options);
-        if (options.require_grad()) cpu_tensor.impl()->set_requires_grad(false);
-
-        float* ptr = cpu_tensor.data_ptr<float>();
-        std::mt19937 gen(std::random_device{}());
-        // 【核心区别】：使用均匀分布器！
-        std::uniform_real_distribution<float> dist(low, high);
-
-        for (size_t i = 0; i < cpu_tensor.element_num(); ++i) { ptr[i] = dist(gen); }
-
-        if (options.require_grad()) cpu_tensor.impl()->set_requires_grad(true);
-        return cpu_tensor;
-    }
+    Tensor t = Tensor::empty(shape, options);
+    ops::fill_uniform(t, low, high);
+    return t;
 }
 
 Tensor Tensor::randn(const Shape& shape, float mean, float std, const TensorOptions& options) {
-    if (options.device().isCuda()) {
-#ifdef USE_CUDA
-        // 先在 CPU 上创建影子张量，防止在 GPU 上直接生成随机数的复杂性
-        TensorOptions cpu_opts = options;
-        cpu_opts.device(Device("cpu")).requiresGrad(false);
-        Tensor cpu_tensor = Tensor::empty(shape, cpu_opts);
-
-        float* ptr = cpu_tensor.data_ptr<float>();
-        std::mt19937 gen(std::random_device{}());
-        std::normal_distribution<float> dist(mean, std);
-
-        for (size_t i = 0; i < cpu_tensor.element_num(); ++i) { ptr[i] = dist(gen); }
-
-        // 跨设备转移
-        Tensor result = cpu_tensor.to(options.device());
-        if (options.require_grad()) { result.impl()->set_requires_grad(true); }
-        return result;
-#else
-        MINIDL_THROW_RUNTIME("CUDA support not enabled, cannot create CUDA randn tensor");
-#endif
-    } else {
-        // 纯 CPU 分支
-        Tensor cpu_tensor = Tensor::empty(shape, options);
-        // 暂时关闭梯度防断言报错
-        if (options.require_grad()) cpu_tensor.impl()->set_requires_grad(false);
-
-        float* ptr = cpu_tensor.data_ptr<float>();
-        std::mt19937 gen(std::random_device{}());
-        std::normal_distribution<float> dist(mean, std);
-
-        for (size_t i = 0; i < cpu_tensor.element_num(); ++i) { ptr[i] = dist(gen); }
-
-        if (options.require_grad()) cpu_tensor.impl()->set_requires_grad(true);
-        return cpu_tensor;
-    }
+    Tensor t = Tensor::empty(shape, options);
+    ops::fill_randn(t, mean, std);
+    return t;
 }
 
 Tensor& Tensor::operator+=(const Tensor& other) {
-    if (this->shape() != other.shape()) {
-        MINIDL_THROW_INVALID_ARG("Tensor operator+= requires matching shapes.");
-    }
-    if (this->device() != other.device()) {
-        MINIDL_THROW_INVALID_ARG("Tensor operator+= requires same device.");
-    }
-
-    size_t n               = this->element_num();
-    float* this_ptr        = this->data_ptr<float>();
-    const float* other_ptr = other.data_ptr<float>();
-
-    if (this->device().isCpu()) {
-        for (size_t i = 0; i < n; ++i) { this_ptr[i] += other_ptr[i]; }
-    } else if (this->device().isCuda()) {
-#ifdef USE_CUDA
-        cuda::launch_add_inplace_kernel_float32(this_ptr, other_ptr, n);
-#else
-        MINIDL_THROW_RUNTIME("Framework compiled without CUDA support!");
-#endif
-    }
-
+    AddOp::apply_inplace(*this, other);
     return *this;
 }
 
 Tensor& Tensor::operator+=(float scalar) {
-    size_t n        = this->element_num();
-    float* this_ptr = this->data_ptr<float>();
-
-    if (this->device().isCpu()) {
-        for (size_t i = 0; i < n; ++i) this_ptr[i] += scalar;
-    } else if (this->device().isCuda()) {
-#ifdef USE_CUDA
-        cuda::launch_add_scalar_inplace_kernel_float32(this_ptr, scalar, n);
-#else
-        MINIDL_THROW_RUNTIME("Framework compiled without CUDA support!");
-#endif
-    }
+    AddScalarOp::apply_inplace(*this, scalar);
     return *this;
 }
 
 Tensor& Tensor::operator*=(const Tensor& other) {
-    if (this->shape() != other.shape())
-        MINIDL_THROW_INVALID_ARG("Tensor operator*= shape mismatch.");
-    if (this->device() != other.device())
-        MINIDL_THROW_INVALID_ARG("Tensor operator*= device mismatch.");
-
-    size_t n               = this->element_num();
-    float* this_ptr        = this->data_ptr<float>();
-    const float* other_ptr = other.data_ptr<float>();
-
-    if (this->device().isCpu()) {
-        for (size_t i = 0; i < n; ++i) this_ptr[i] *= other_ptr[i];
-    } else if (this->device().isCuda()) {
-#ifdef USE_CUDA
-        cuda::launch_mul_inplace_kernel_float32(this_ptr, other_ptr, n);
-#endif
-    }
+    MulOp::apply_inplace(*this, other);
     return *this;
 }
 
 Tensor& Tensor::operator*=(float scalar) {
-    size_t n        = this->element_num();
-    float* this_ptr = this->data_ptr<float>();
-
-    if (this->device().isCpu()) {
-        for (size_t i = 0; i < n; ++i) this_ptr[i] *= scalar;
-    } else if (this->device().isCuda()) {
-#ifdef USE_CUDA
-        cuda::launch_mul_scalar_inplace_kernel_float32(this_ptr, scalar, n);
-#endif
-    }
+    MulScalarOp::apply_inplace(*this, scalar);
     return *this;
 }
 
 Tensor Tensor::clone() const {
     if (!defined()) return Tensor();
-
-    TensorOptions clone_opts = _impl->options();
-    clone_opts.requiresGrad(false);  // avoid deadlock in backward propagation
-
-    Tensor out         = Tensor::empty(this->shape(), clone_opts);
-    size_t total_bytes = this->element_num() * get_element_size(this->data_type());
-
-    if (this->device().isCpu()) {
-        std::memcpy(out.impl()->data(), this->impl()->data(), total_bytes);
-    } else if (this->device().isCuda()) {
-#ifdef USE_CUDA
-        cudaError_t err = cudaMemcpy(out.impl()->data(), this->impl()->data(), total_bytes,
-                                     cudaMemcpyDeviceToDevice);
-        if (err != cudaSuccess) {
-            MINIDL_THROW_RUNTIME("cudaMemcpy failed during clone: {}", cudaGetErrorString(err));
-        }
-#else
-        MINIDL_THROW_RUNTIME("Framework compiled without CUDA support!");
-#endif
-    }
-    return out;
+    return Tensor(_impl->clone());
 }
 
 Tensor Tensor::to(Device dev) const {
@@ -257,15 +83,7 @@ Tensor Tensor::to(Device dev) const {
 
     if (device() == dev) { return *this; }
 
-    auto new_storage          = _impl->storage()->toDevice(dev);
-    TensorOptions new_options = _impl->options();
-    new_options.device(dev);
-
-    auto new_impl =
-        std::make_shared<TensorImpl>(std::move(new_storage), _impl->shape(), _impl->strides(),
-                                     _impl->storage_offset(), new_options);
-
-    return Tensor(std::move(new_impl));
+    return Tensor(_impl->to(dev));
 }
 
 // auto grad

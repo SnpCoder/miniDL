@@ -10,6 +10,7 @@ class AddOp : public Operator {
     std::vector<Tensor> backward(const std::vector<Tensor>& grad_outputs) override;
 
     static Tensor apply(const Tensor& a, const Tensor& b);
+    static void apply_inplace(Tensor& self, const Tensor& other);
 };
 
 class AddScalarOp : public Operator {
@@ -23,6 +24,7 @@ class AddScalarOp : public Operator {
     std::vector<Tensor> backward(const std::vector<Tensor>& grad_outputs) override;
 
     static Tensor apply(const Tensor& a, float b);
+    static void apply_inplace(Tensor& self, float scalar);
 };
 
 Tensor operator+(const Tensor& a, const Tensor& b);

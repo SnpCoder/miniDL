@@ -76,6 +76,9 @@ class TensorImpl {
     std::shared_ptr<TensorImpl> permute(const std::vector<size_t>& dims) const;
     std::shared_ptr<TensorImpl> reshape(const Shape& new_shape) const;
 
+    std::shared_ptr<TensorImpl> clone() const;
+    std::shared_ptr<TensorImpl> to(Device dev) const;
+
     std::string to_string() const;
     void print() const;
 };

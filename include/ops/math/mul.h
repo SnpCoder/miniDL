@@ -9,6 +9,7 @@ class MulOp : public Operator {
     std::vector<Tensor> forward(const std::vector<Tensor>& inputs) override;
     std::vector<Tensor> backward(const std::vector<Tensor>& grad_outputs) override;
     static Tensor apply(const Tensor& a, const Tensor& b);
+    static void apply_inplace(Tensor& self, const Tensor& other);
 };
 
 class MulScalarOp : public Operator {
@@ -20,9 +21,9 @@ class MulScalarOp : public Operator {
     std::vector<Tensor> forward(const std::vector<Tensor>& input) override;
     std::vector<Tensor> backward(const std::vector<Tensor>& grad_outputs) override;
     static Tensor apply(const Tensor& a, float b);
+    static void apply_inplace(Tensor& self, float scalar);
 };
 
-// 运算符重载 (语法糖)
 Tensor operator*(const Tensor& a, const Tensor& b);
 Tensor operator*(const Tensor& a, float b);
 Tensor operator*(float a, const Tensor& b);
