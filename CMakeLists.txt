@@ -36,6 +36,7 @@ file(
         ${CMAKE_CURRENT_SOURCE_DIR}/src/nn/*.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/optim/*.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/src/core/*.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/data/*.cpp
 )
 
 add_library(minidl ${MINIDL_SRCS})
