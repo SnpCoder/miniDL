@@ -4,7 +4,7 @@
 
 using namespace miniDL;
 
-TEST(ShapeTest, ConstructorAndElements) {
+TEST(ShapeUnitTest, ConstructorAndElements) {
     Shape s({2, 3, 4});
 
     EXPECT_EQ(s.size(), 3);
